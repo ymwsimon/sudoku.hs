@@ -212,7 +212,7 @@ buildUI env = do
     #add box board
 
     ctrlBox <- buildControl box board lastPad difficulty' (pulseDuration env)
-    #add box ctrlBox
+--    #add box ctrlBox
     return win
 
 clearPopup :: IORef (Maybe Popover) -> IO ()
@@ -272,15 +272,12 @@ wirePad b p g pulse = do
             cellVal <- readInt . T.unpack <$> #getLabel parent' :: IO Int
 
             arr <- gridArray g
-            putStr "detected coord: "
-            print (i, j)
-            cs <- conflicts arr cellVal (fromIntegral i) (fromIntegral j)
-            putStrLn . unlines $ show <$> cs
+            let cs = conflicts arr cellVal (fromIntegral i) (fromIntegral j)
 
             #getLabel x' >>= \case
                 "\59738" -> set parent' [#label := T.empty]
                 "\59737" -> if null cs
-                    then flashButton parent' "red" pulse
+                    then flashButton parent' "green" pulse
                     else do
                         forM_ cs \(i', j') -> do
                             btn <- gridGetChildAt g (fromIntegral j') (fromIntegral i') >>= unsafeCastTo Button . fromJust
@@ -355,6 +352,7 @@ main = do
     Gtk.main
     `catch` (\(e::GError) -> gerrorMessage e >>= putStrLn . T.unpack)
 
+-- enable loading custom font into widgets
 
 data FcConfig = FcConfig
 

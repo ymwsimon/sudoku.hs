@@ -91,39 +91,20 @@ blockIdxCrd b idx = (i, j) where
                in (i'' * 3, j'' * 3)
     (i, j)   = (dI + i' + 1, dJ + j' + 1)
 
-conflicts :: Board -> Int -> Int -> Int -> IO [(Int, Int)]
+conflicts :: Board -> Int -> Int -> Int -> [(Int, Int)]
 conflicts b x i j = let
     f = flip canidate False
     (a, z, c) = unitVals b $ pointUnit (i, j) :: ([Int], [Int], [Int])
     (a', z', c') = (f a, f z, f c)
-    in do
-        putStrLn "a::"
-        print a
-        putStrLn "z::"
-        print b
-        putStrLn "c::"
-        print c
-        putStr "args: "
-        print (x, i, j)
-        let a_ = g ((i,) <$>) a'
-        let z_ = g ((,j) <$>) z'
-        let c_ = g (blockIdxCrd (getBlock (i, j)) <$>) c'
-        putStr "row conflicts:\n"
-        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> a'
-        putStr "column conflicts:\n"
-        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> z'
-        putStr "block conflicts: "
-        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> c'
-        putStr "final block output: "
-        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> c_
-        print $  a_ <> z_ <> c_
-        return $ a_ <> z_ <> c_
-        where
-            g u us = join $ flip mapMaybe us \(d, xs) -> if d == x
-                then if (length . take 2 $ xs) > 1
-                    then Just $ u xs
-                    else Nothing
-                else Nothing
+    a_ = g ((i,) <$>) a'
+    z_ = g ((,j) <$>) z'
+    c_ = g (blockIdxCrd (getBlock (i, j)) <$>) c'
+    g u us = join $ flip mapMaybe us \(d, xs) -> if d == x
+        then if (length . take 2 $ xs) > 1
+            then Just $ u xs
+            else Nothing
+        else Nothing
+    in  a_ <> z_ <> c_
 
 -- | Return true if the area scanned over could potentially form part of a valid
 -- sudoku solution
