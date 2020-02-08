@@ -1,4 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 
 module Sudoku.Internal where
 import Control.Monad

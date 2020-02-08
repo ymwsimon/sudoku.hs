@@ -4,13 +4,15 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Sudoku.Sudoku where
-import Control.Monad (guard)
+import Control.Monad (guard, when, join)
 import Control.Monad.ST
 import Data.Array.ST
 import Data.Array.Unboxed
 import Data.Function (fix)
+import Data.Maybe (mapMaybe)
 import Data.STRef
 import Sudoku.Internal
 import System.Random
@@ -60,31 +62,75 @@ rowIndices i = [(i, j) | j <- [1 .. sudokuSz]]
 colIndices :: Int -> [(Int, Int)]
 colIndices j = [(i, j) | i <- [1 .. sudokuSz]]
 
--- | Return true if a list of integers >= 0 contains no duplicates O(n)
-canidate :: Int -> [Int] -> Bool -> Bool
-canidate mx xs z = runST do
-    arr <- newArray (1, mx) False :: ST s (STUArray s Int Bool)
+-- | Return list of conflict indices TODO tidy
+canidate :: [Int] -> Bool -> [(Int, [Int])]
+canidate xs z = assocs $ runSTArray do
+    arr <- newArray (0, sudokuSz) [] :: ST s (STArray s Int [Int])
     i <- newSTRef xs
+    j <- newSTRef 1
+    let appIdx d ix = do
+            tmp <- readArray arr d
+            writeArray arr d $ ix:tmp
+    let inc to = do
+            modifySTRef j (+ 1)
+            modifySTRef i tail
+            to
     fix $ \go -> do
-        r <- readSTRef i
-        case r of
-            []     -> return True
-            (0:us) -> do -- 0 = unfilled
-                if z
-                    then return False
-                    else writeSTRef i us >> go
-            (u:us) -> do
-                tmp <- readArray arr u
-                writeSTRef i us
-                writeArray arr u True
-                if tmp then return False else go
+        i' <- readSTRef i
+        j' <- readSTRef j
+        case i' of
+            [] -> return ()
+            (0:_) -> if z then appIdx 0 j' >> inc go else inc go
+            (u:_) -> appIdx u j' >> inc go
+    return arr
+
+blockIdxCrd :: Int -> Int -> (Int, Int)
+blockIdxCrd b idx = (i, j) where
+    (dI, dJ) = divMod (idx - 1) blockWidth
+    (i', j') = let (i'', j'') = divMod (b - 1) blockWidth
+               in (i'' * 3, j'' * 3)
+    (i, j)   = (dI + i' + 1, dJ + j' + 1)
+
+conflicts :: Board -> Int -> Int -> Int -> IO [(Int, Int)]
+conflicts b x i j = let
+    f = flip canidate False
+    (a, z, c) = unitVals b $ pointUnit (i, j) :: ([Int], [Int], [Int])
+    (a', z', c') = (f a, f z, f c)
+    in do
+        putStrLn "a::"
+        print a
+        putStrLn "z::"
+        print b
+        putStrLn "c::"
+        print c
+        putStr "args: "
+        print (x, i, j)
+        let a_ = g ((i,) <$>) a'
+        let z_ = g ((,j) <$>) z'
+        let c_ = g (blockIdxCrd (getBlock (i, j)) <$>) c'
+        putStr "row conflicts:\n"
+        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> a'
+        putStr "column conflicts:\n"
+        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> z'
+        putStr "block conflicts: "
+        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> c'
+        putStr "final block output: "
+        putStrLn . unlines $ (\x -> "   " <> show x <> "\n") <$> c_
+        print $  a_ <> z_ <> c_
+        return $ a_ <> z_ <> c_
+        where
+            g u us = join $ flip mapMaybe us \(d, xs) -> if d == x
+                then if (length . take 2 $ xs) > 1
+                    then Just $ u xs
+                    else Nothing
+                else Nothing
 
 -- | Return true if the area scanned over could potentially form part of a valid
 -- sudoku solution
 validateArea :: ScanArea -> Board -> Bool -> Bool
 validateArea (row, col, blk) g z = and $ map f r <> map f c <> map f b where
     validate k xs = map (g !) . k <$> xs
-    f = flip (canidate sudokuSz) z
+    f = all (\x -> (length . take 2 . snd $ x) <= 1) . (flip canidate z)
     r = validate rowIndices row
     c = validate colIndices col
     b = validate blockIndices blk
@@ -165,3 +211,14 @@ solve g rand
             (_,  [])  -> Nothing
             (_,  xs)  -> Just xs
     | otherwise = Nothing
+
+test :: [Int]
+test = [ 7, 2, 6, 4, 9, 3, 8, 1, 5
+       , 3, 1, 5, 7, 2, 8, 9, 4, 6
+       , 4, 0, 9, 6, 5, 1, 2, 3, 7
+       , 8, 5, 2, 1, 4, 7, 6, 9, 3
+       , 6, 7, 3, 9, 8, 5, 1, 2, 4
+       , 9, 4, 1, 3, 6, 2, 7, 5, 8
+       , 1, 9, 4, 8, 3, 6, 5, 7, 2
+       , 5, 6, 7, 2, 1, 4, 3, 8, 9
+       , 2, 3, 8, 5, 7, 9, 4, 6, 1 ]

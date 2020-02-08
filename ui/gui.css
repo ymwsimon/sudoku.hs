@@ -1,0 +1,114 @@
+/*
+ * simple styling for gui
+*/
+
+button {
+	background: #1c1c1c;
+	border-radius: 0px;
+	color: #929595;
+    box-shadow: none
+}
+
+
+#evenBlockCell.normal {
+	background: #f5f1b3
+}
+
+#oddBlockCell.normal {
+	background: #fffdd9
+}
+
+popover {
+	background: transparent;
+	border: 0;
+	box-shadow: none
+}
+
+box {
+	background: #303030
+}
+
+window-frame {
+	box-shadow: none;
+	margin: 0px
+}
+
+/*
+#kpGrid > button:hover {
+	box-shadow: none;
+	border: 0;
+	border-radius: 0;
+	color: pink
+}
+*/
+
+kpGrid > button {
+ background: #1c1c1c;
+ color: #929595
+}
+
+
+#kpGrid > button:nth-child(1) {
+	border-radius: 10px 0 0 0
+}
+
+#kpGrid > button:nth-child(3) {
+	border-radius: 0 10px 0 0
+}
+
+#kpGrid > button:nth-child(7) {
+	border-radius: 0 0 0 10px
+}
+
+#kpGrid > button:nth-child(9) {
+	border-radius: 0 0 10px 0
+}
+
+#kpGrid > button:nth-child(11) {
+    border-radius: 99px 0 0 99px
+}
+
+#kpGrid > button:nth-child(10) {
+    border-radius: 0
+}
+
+#kpGrid > button:nth-child(12) {
+    border-radius: 0 99px 99px 0
+}
+
+#evenBlockCell.red {
+  background: mix (red, #f5f1b3, 0.4);
+}
+
+#oddBlockCell.red {
+  background: mix (red, #fffdd9, 0.4);
+}
+
+#oddBlockCell.green {
+  background: mix (green, #fffdd9, 0.4);
+}
+
+#evenBlockCell.green {
+  background: mix (green, #f5f1b3, 0.4);
+}
+
+#menuBox {
+	background-color: transparent;
+	padding: 40px;
+	margin: 0;
+}
+
+#startMenu {
+	background-color: mix (#17131f, transparent, 0.4);
+	padding: 0;
+	margin: 0;
+    border: 0; }
+
+button:hover:not(.normal) {
+    color: pink;
+    box-shadow: none
+}
+
+button.overlayBtn {
+    border-radius: 3px
+}
