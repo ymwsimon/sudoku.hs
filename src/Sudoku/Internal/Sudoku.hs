@@ -16,7 +16,7 @@ import Data.Maybe (mapMaybe)
 import Data.STRef
 import Sudoku.Internal.Internal
 import System.Random
-import qualified  Data.Set as Set
+import qualified Data.Set as Set
 
 newtype Board = Board (UArray Point Int)      -- +-+-+-+
                                               -- |1|2|3|
@@ -100,6 +100,14 @@ conflicts b ((i, j), x) = let
         then Just $ u xs
         else Nothing
     in  a_ <> z_ <> c_
+
+allConflicts :: Board -> [Point]
+allConflicts b@(Board g) = Set.toList $ foldr f (Set.empty :: Set.Set Point) $ assocs g where
+    f x acc = let cs = Set.fromList $ conflicts b x in Set.union cs acc
+
+-- | view coordinate space as list
+cSpace :: [(Int, Int)]
+cSpace = flip (,) <$> [1..sudokuSz] <*> [1..sudokuSz]
 
 -- | Return true if the area scanned over could potentially form part of a valid
 -- sudoku solution
@@ -190,7 +198,7 @@ solve g'@(Board g) rand
 test :: [Int]
 test = [ 7, 2, 6, 4, 9, 3, 8, 1, 5
        , 3, 1, 5, 7, 2, 8, 9, 4, 6
-       , 4, 0, 9, 6, 5, 1, 2, 3, 7
+       , 4, 6, 9, 6, 5, 1, 2, 3, 7
        , 8, 5, 2, 1, 4, 7, 6, 9, 3
        , 6, 7, 3, 9, 8, 5, 1, 2, 4
        , 9, 4, 1, 3, 6, 2, 7, 5, 8

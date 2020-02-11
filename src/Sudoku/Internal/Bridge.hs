@@ -19,10 +19,6 @@ import System.Random
 import Text.Read (readMaybe)
 import qualified Data.Text as T
 
--- | view coordinate space as list
-cSpace :: [(Int, Int)]
-cSpace = flip (,) <$> [1..sudokuSz] <*> [1..sudokuSz]
-
 -- | Accumulates Grid to [Int], top -> bottom, left -> right
 gridState :: Grid -> IO [Int]
 gridState g = reverse <$> do

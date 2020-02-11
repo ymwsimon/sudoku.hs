@@ -117,14 +117,14 @@ buildOverlayLayout g b = do
     difficultyBtns b g
     #show overlay
 
-buildCtrlLayout :: Grid -> Builder -> IO ()
-buildCtrlLayout g b = do
+buildCtrlLayout :: Int -> Grid -> Builder -> IO ()
+buildCtrlLayout pulse' g b = do
     newGame_ <- unsafeBuildObj Button b "new_game_btn"
-    difficulty_ <- unsafeBuildObj Button b "difficulty_btn"
-    solve_ <- unsafeBuildObj Button b "difficulty_btn"
-    on newGame_ #clicked $ solveBtn b g
-    on difficulty_ #clicked $ difficultyBtn b
-    on solve_ #clicked $ solveBtn b g
+    check_ <- unsafeBuildObj Button b "check_btn"
+    solve_ <- unsafeBuildObj Button b "solve_btn"
+    on newGame_ #clicked $ newGameBtn b
+    on solve_ #clicked $ solveBtn pulse' b g
+    on check_ #clicked $ checkBtn pulse' g
     return ()
 
 buildKeypad :: Font -> Int -> Grid -> Builder -> IO Popover
@@ -134,12 +134,12 @@ buildKeypad (map, desc) pulse' g b = do
     forM_ [1..sudokuSz] \x -> do
         btn <- unsafeBuildObj Button b . T.pack $ prefix <> show x
         on btn #clicked $ kpDigitBtn kp x
-    checkBtn <- unsafeBuildObj Button b "kp_check"
+    checkBtn' <- unsafeBuildObj Button b "kp_check"
     clearBtn <- unsafeBuildObj Button b "kp_clear"
     cheatBtn <- unsafeBuildObj Button b "kp_cheat"
-    on checkBtn #clicked $ kpCheckBtn pulse' kp g
+    on checkBtn' #clicked $ kpCheckBtn pulse' kp g
     on clearBtn #clicked $ kpClearBtn kp
-    on cheatBtn #clicked $ kpCheatBtn kp g
+    on cheatBtn #clicked $ kpCheatBtn pulse' kp g
     return kp
 
 buildWindow :: Builder -> IO Window
@@ -154,7 +154,7 @@ buildApp e = do
         =<< getDataFileName (T.unpack uiPath)
     board' <- buildBoard builder
     buildOverlayLayout board' builder
-    buildCtrlLayout board' builder
+    buildCtrlLayout (pulse e) board' builder
     kpFont <- buildFont
     kp <- buildKeypad kpFont (pulse e) board' builder
     win <- buildWindow builder
@@ -189,33 +189,35 @@ kpClearBtn p = do
     set parent [#label := T.empty]
     #popdown p
 
-kpCheatBtn :: Popover -> Grid -> IO ()
-kpCheatBtn p g = do
+kpCheatBtn :: Int -> Popover -> Grid -> IO ()
+kpCheatBtn pulse' p g = do
     kpClearBtn p
     sltn <- gridSolve g
     cord <-fst <$> keypadCell g p
     case sltn of
-        Nothing -> return () -- TODO
+        Nothing -> flashColor pulse' g cSpace Red
         Just x -> case lookup cord x of
-            Nothing -> return () -- ATODO FLASH
-            Just x -> return ()
+            Nothing -> flashColor pulse' g [cord] Green
+            Just x' -> gridUpdate g [(cord, x')]
+                >> flashColor pulse' g [cord] Green
     #popdown p
 
-newGameBtn :: Builder -> Grid -> Int -> IO ()
-newGameBtn b g diff = do
-    btn <- unsafeBuildObj Button b "new_game_btn"
-    on btn #clicked $ gridRegen g diff
-    return ()
-
-solveBtn :: Builder -> Grid -> IO ()
-solveBtn b g = do
+solveBtn :: Int -> Builder -> Grid -> IO ()
+solveBtn pulse b g = do
     btn <- unsafeBuildObj Button b "solve_btn"
     on btn #clicked $ do
         gridSolve g >>= \case
-            Nothing -> return () -- TODO IMPLEMENT FLASH
-            Just [] -> return ()
+            Nothing -> flashColor pulse g cSpace Red
+            Just [] -> flashColor pulse g cSpace Green
             Just xs -> gridUpdate g xs
     return ()
+
+checkBtn :: Int -> Grid -> IO ()
+checkBtn pulse g = do
+    board' <- gridArray g
+    case allConflicts board' of
+        [] -> flashColor pulse g cSpace Green
+        xs -> flashColor pulse g xs Red
 
 difficultyBtns :: Builder -> Grid -> IO ()
 difficultyBtns b g = do
@@ -224,21 +226,18 @@ difficultyBtns b g = do
     normalBtn <- unsafeBuildObj Button b "normal_btn"
     hardBtn <- unsafeBuildObj Button b "hard_btn"
     on easyBtn #clicked do
-        newGameBtn b g 30
         #hide menuBox
         gridRegen g 30
     on normalBtn #clicked do
-        newGameBtn b g 50
         #hide menuBox
         gridRegen g 50
     on hardBtn #clicked do
-        newGameBtn b g 70
         #hide menuBox
         gridRegen g 70
     return ()
 
-difficultyBtn :: Builder -> IO ()
-difficultyBtn b = do
+newGameBtn :: Builder -> IO ()
+newGameBtn b = do
     menuBox <- unsafeBuildObj Box b "diff_layout"
     #show menuBox
 

@@ -548,8 +548,8 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="difficulty_btn">
-                    <property name="label" translatable="yes">difficulty</property>
+                  <object class="GtkButton" id="check_btn">
+                    <property name="label" translatable="yes">check</property>
                     <property name="name">ctrl_btn</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
