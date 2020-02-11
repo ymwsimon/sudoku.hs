@@ -9,12 +9,29 @@ button {
     box-shadow: none
 }
 
+button:hover {
+  box-shadow: none;
+  border: 0;
+}
 
-#evenBlockCell.normal {
+button:hover:not(.evenCell):not(.oddCell) {
+  color: pink;
+}
+
+button.evenCell:focus,
+button.oddCell:focus,
+button.oddCell:hover,
+button.evenCell:hover {
+  color: black;
+  box-shadow: none;
+  border: 2px solid black;
+}
+
+button.evenCell {
 	background: #f5f1b3
 }
 
-#oddBlockCell.normal {
+button.oddCell {
 	background: #fffdd9
 }
 
@@ -32,21 +49,6 @@ window-frame {
 	box-shadow: none;
 	margin: 0px
 }
-
-/*
-#kpGrid > button:hover {
-	box-shadow: none;
-	border: 0;
-	border-radius: 0;
-	color: pink
-}
-*/
-
-kpGrid > button {
- background: #1c1c1c;
- color: #929595
-}
-
 
 #kpGrid > button:nth-child(1) {
 	border-radius: 10px 0 0 0
@@ -76,19 +78,19 @@ kpGrid > button {
     border-radius: 0 99px 99px 0
 }
 
-#evenBlockCell.red {
+button.red.evenCell {
   background: mix (red, #f5f1b3, 0.4);
 }
 
-#oddBlockCell.red {
+button.red.oddCell.red {
   background: mix (red, #fffdd9, 0.4);
 }
 
-#oddBlockCell.green {
+button.green.oddCell {
   background: mix (green, #fffdd9, 0.4);
 }
 
-#evenBlockCell.green {
+button.green.evenCell {
   background: mix (green, #f5f1b3, 0.4);
 }
 
@@ -104,10 +106,6 @@ kpGrid > button {
 	margin: 0;
     border: 0; }
 
-button:hover:not(.normal) {
-    color: pink;
-    box-shadow: none
-}
 
 button.overlayBtn {
     border-radius: 3px

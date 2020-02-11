@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE BlockArguments      #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedLabels    #-}
@@ -13,29 +12,25 @@ import Control.Exception (catch)
 import Control.Monad (forM_, forM, when, unless)
 import Data.Array.Unboxed
 import Data.GI.Base
-import Data.GI.Base.GError (gerrorMessage, GError(..))
-import Data.Int
-import Data.IORef
-import Data.Maybe (fromJust, fromMaybe)
 import Data.GI.Base.BasicTypes
-import GI.Gtk hiding (main, init)
+import Data.GI.Base.GError (gerrorMessage, GError(..))
 import Data.GI.Base.GValue (toGValue, fromGValue)
-import GI.Gtk.Objects.Widget
-import GI.Pango.Structs.FontDescription
-import GI.Pango.Objects.FontMap
+import Data.IORef
+import Data.Int
+import Data.Maybe (fromJust, fromMaybe)
+import Foreign.C.Types
+import GI.Gtk hiding (main, init)
 import GI.Gtk.Objects.Container
+import GI.Gtk.Objects.Widget
+import GI.Pango.Objects.FontMap
+import GI.Pango.Structs.FontDescription
 import Paths_sudoku
-import Sudoku.Sudoku
+import Sudoku.Internal.Sudoku
 import System.Random
+import Text.Read
+import Sudoku.Internal.Bindings
 import qualified Data.Text as T (unpack, Text, pack, empty)
 import qualified GI.Gtk as Gtk (main, init)
-import Foreign.C.String
-import Foreign.C.Types
-import Foreign.Ptr
-import Foreign.ForeignPtr
-import GI.Pango.Objects.FontMap
-import Unsafe.Coerce
-import Text.Read
 
 data Env = Env { difficulty :: Int
                , winWidth   :: Int
@@ -49,7 +44,7 @@ uiPath :: T.Text
 uiPath = "ui/ui.glade"
 
 dfltEnv :: Env
-dfltEnv = Env 50 635 540 350000
+dfltEnv = Env 50 1600 1600 350000
 
 -- | view coordinate space as list
 cSpace :: [(Int, Int)]
@@ -79,7 +74,7 @@ unsafeBuildObj t builder wId = builderGetObject builder wId
 
 buildOverlay :: IORef Int -> Grid -> IO Overlay
 buildOverlay difficulty' b = do
-    menuOverlay <- new Overlay [#expand := True]
+    menuOverlay <- new Overlay [#expand := True, #canFocus := True, #hasFocus := True]
     menuBuilder <- builderNewFromFile . T.pack
         =<< getDataFileName (T.unpack uiPath)
 
@@ -108,10 +103,12 @@ buildOverlay difficulty' b = do
 
 buildGrid :: IORef (Maybe Popover) -> Int -> IO Grid
 buildGrid cleanup pulse = do
-    board <- new Grid [#expand := True
+    board <- new Grid [ #expand := True
                       , #name := "board"
                       , #columnSpacing := 0
-                      , #rowSpacing := 0]
+                      , #rowSpacing := 0
+                      , #columnHomogeneous := False
+                      , #rowHomogeneous := False ]
 
     pass <- currentAppFontAddFile "/home/fireflower/Dev/hsudoku/ui/sudokuicons.ttf"
     when (not pass) $ putStrLn "err adding font file"
@@ -120,8 +117,10 @@ buildGrid cleanup pulse = do
     fdesc <- fontDescriptionFromString "Sudoku"
 
     forM_ cSpace \(x, y) -> do
-        cell <- new Button [#expand := True, #relief := ReliefStyleNone]
         lbl <- getLbl x y
+        cell <- new Button [ #expand := True
+                           , #relief := ReliefStyleNone
+                           , #name   := lbl ]
         style <- #getStyleContext cell
         #addClass style "normal"
         set cell [#name := lbl]
@@ -347,36 +346,16 @@ flashColor len g clazz = forkIO do
 main :: IO ()
 main = do
     Gtk.init Nothing
+    winTest <- new Window [#title := "sudokuhs_test", #resizable := True]
+    imgTest <- imageNewFromFile "/home/fireflower/Dev/hsudoku/ui/sudoku.png"
+    set imgTest [#expand := True]
+    #add winTest imgTest
+    #showAll winTest
+
     win <- buildUI dfltEnv
     #showAll win
     Gtk.main
     `catch` (\(e::GError) -> gerrorMessage e >>= putStrLn . T.unpack)
-
--- enable loading custom font into widgets
-
-data FcConfig = FcConfig
-
-data PangoFontDescription = PangoFontDescription
-
-foreign import ccall "FcConfigGetCurrent" configGetCurrent :: IO (Ptr FcConfig)
-
-foreign import ccall "FcConfigAppFontAddFile" configAppFontAddFile :: Ptr FcConfig -> CString -> IO Bool
-
-foreign import ccall "pango_cairo_font_map_get_default" carioFontMapGetDefault' :: IO (Ptr a)
-
-currentAppFontAddFile :: String -> IO Bool
-currentAppFontAddFile s = do
-    cfg <- configGetCurrent
-    str <- newCAString s
-    configAppFontAddFile cfg str
-
-carioFontMapGetDefault :: IO FontMap
-carioFontMapGetDefault = do
-    ptr <- carioFontMapGetDefault'
-    fptr <- newForeignPtr_ ptr
-    cs <- newIORef Nothing
-    let mPtr = ManagedPtr fptr Nothing cs
-    return $ unsafeCoerce mPtr
 
 readInt :: String -> Int
 readInt = fromMaybe 0 . readMaybe

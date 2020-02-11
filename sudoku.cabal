@@ -17,46 +17,64 @@ data-files:          ui/ui.glade
                    , ui/gui.css
 
 common deps
-  build-depends:       base ^>= 4.12,
-                       array,
-                       random,
-                       containers,
-                       sudoku-internal
+  build-depends:       base ^>= 4.12
+                     , array
+                     , random
+                     , containers
+                     , sudoku-internal
+
+common ghc-cfg
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
                        -fno-warn-unused-do-bind
 
-library
-  import:              deps
-  exposed-modules:     Sudoku.Sudoku
-  other-modules:       Sudoku.Internal
 
 library sudoku-internal
-  exposed-modules:     Sudoku.Internal
-  build-depends:       base ^>= 4.12,
-                       array,
-                       random,
-                       containers,
-  hs-source-dirs:      src
-  default-language:    Haskell2010
-  ghc-options:         -Wall
+  import:              ghc-cfg
+  exposed-modules:     Sudoku.Internal.Internal
+                     , Sudoku.Internal.Bindings
+                     , Sudoku.Internal.Sudoku
+                     , Sudoku.Internal.Bridge
+  build-depends:       base ^>= 4.12
+  build-depends:     , gi-gtk ^>= 3.0.32
+                     , gi-pango ^>= 1.0.22
+                     , haskell-gi-base ^>= 0.23.0
+                     , array
+                     , random
+                     , containers
+                     , text
+  extra-libraries:     fontconfig
 
 executable app
-  import:              deps
+  import:              deps, ghc-cfg
   main-is:             Sudoku/Gui.hs
-  other-modules:       Sudoku.Sudoku,
-                       Sudoku.Internal,
-                       Paths_sudoku
-  -- other-extensions:
-  build-depends:       gi-gtk ^>= 3.0.32,
-                       haskell-gi ^>= 0.23.0,
-                       haskell-gi-base ^>= 0.23.0,
-                       gi-pango ^>= 1.0.22,
-                       text
-  extra-libraries:     fontconfig
-  hs-source-dirs:      src
-  default-language:    Haskell2010
+  other-modules:       Sudoku.Internal.Sudoku
+                     , Sudoku.Internal.Internal
+                     , Sudoku.Internal.Bindings
+                     , Sudoku.Internal.Bridge
+                     , Paths_sudoku
+  build-depends:       gi-gtk ^>= 3.0.32
+                     , haskell-gi ^>= 0.23.0
+                     , haskell-gi-base ^>= 0.23.0
+                     , gi-pango ^>= 1.0.22
+                     , text
   ghc-options:         -main-is Sudoku.Gui
+                       -O2
+                       -threaded
+
+executable new-app
+  import:              deps, ghc-cfg
+  main-is:             Sudoku/GuiNew.hs
+  other-modules:       Sudoku.Internal.Sudoku
+                     , Sudoku.Internal.Internal
+                     , Sudoku.Internal.Bindings
+                     , Sudoku.Internal.Bridge
+  build-depends:       gi-gtk ^>= 3.0.32
+                     , haskell-gi ^>= 0.23.0
+                     , haskell-gi-base ^>= 0.23.0
+                     , gi-pango ^>= 1.0.22
+                     , text
+  ghc-options:         -main-is Sudoku.GuiNew
                        -O2
                        -threaded
