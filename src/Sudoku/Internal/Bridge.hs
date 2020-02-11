@@ -8,7 +8,6 @@ module Sudoku.Internal.Bridge where
 import Control.Monad (forM, mapM_)
 import Data.Array.Unboxed
 import Data.GI.Base
-import Data.GI.Base.ManagedPtr
 import Data.Maybe (fromJust, fromMaybe)
 import Foreign.C.Types
 import GI.Gtk.Objects.Button
@@ -77,6 +76,7 @@ gridRegen g dif = do
         clr = Board $ listArray ((1,1), (sudokuSz,sudokuSz)) $ repeat 0
         maxProb = 100
 
+-- | Returns the Cell this keypad is attached to
 keypadCell :: Grid -> Popover -> IO Cell
 keypadCell g p = do
     parent <- #getRelativeTo p >>= unsafeCastTo Button

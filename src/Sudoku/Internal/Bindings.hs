@@ -1,5 +1,4 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -8,7 +7,6 @@ import Data.IORef
 import Data.GI.Base.BasicTypes
 import GI.Pango.Objects.FontMap
 import Foreign.C.String
-import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.ForeignPtr
 import Unsafe.Coerce

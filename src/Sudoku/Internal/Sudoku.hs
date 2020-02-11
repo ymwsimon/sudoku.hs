@@ -7,7 +7,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Sudoku.Internal.Sudoku where
-import Control.Monad (guard, when, join)
+import Control.Monad (guard, join)
 import Control.Monad.ST
 import Data.Array.ST
 import Data.Array.Unboxed
@@ -30,18 +30,18 @@ sudokuSz = 9
 blockWidth :: Int
 blockWidth = 3
 
-type ScanArea = ([Int], [Int], [Int]) -- Rows to scan, colums to scan, blocks
+type ScanArea = ([Int], [Int], [Int]) -- Rows to scan, columns to scan, blocks
 
 scanAll :: ScanArea
 scanAll = let !r = [1..sudokuSz] in (r, r, r)
 
--- | Return the index of the coordinate's block
+-- | Return the index of the coordinates block
 getBlock :: Point -> Int
 getBlock (i, j) = i' + j' where
     i' = (i - 1) `div` blockWidth * blockWidth + 1
     j' = (j - 1) `div` blockWidth
 
--- | Return all indicies of a given block
+-- | Return all indices of a given block
 blockIndices :: Int -> [Point]
 blockIndices n = is `distrubute` js where
     distrubute is' js' = [ (i, j) | i <- is', j <- js' ]
@@ -50,11 +50,11 @@ blockIndices n = is `distrubute` js where
     js = let del = (n - 1) `mod` blockWidth  * blockWidth
         in [del + 1 .. blockWidth + del]
 
--- | Return all indicies of a given row
+-- | Return all indices of a given row
 rowIndices :: Int -> [Point]
 rowIndices i = [(i, j) | j <- [1 .. sudokuSz]]
 
--- | Return all indicies of a given column
+-- | Return all indices of a given column
 colIndices :: Int -> [Point]
 colIndices j = [(i, j) | i <- [1 .. sudokuSz]]
 
@@ -81,6 +81,7 @@ canidate xs z = filter (\x -> (length . take 2 . snd $ x) > 1) . assocs
                 (u:_) -> appIdx u j' >> inc go
         return arr
 
+-- | Given block index & offset return the equivalent Point
 blockIdxCrd :: Int -> Int -> Point
 blockIdxCrd b idx = (i, j) where
     (dI, dJ) = divMod (idx - 1) blockWidth
@@ -142,7 +143,7 @@ pruneDepends (c, v) = \(c', v') -> if v == v'
 composePrune :: Prune -> Prune -> Prune
 composePrune a b = \x -> b x || a x
 
--- discards branches of invalid posibilties using prunes. (like a dfs over a
+-- discards branches of invalid possibilities using prunes. (like a dfs over a
 -- multitree)
 -- | Generate all possible solutions
 forest :: [(Point, [Int])] -> [[Cell]]
@@ -167,7 +168,7 @@ unitVals g (a, b, c) = ( fetch g rowIndices a
                        , fetch g colIndices b
                        , fetch g blockIndices c )
 
--- | Returns all mising values in a sudoku unit vector
+-- | Returns all missing values in a sudoku unit vector
 missingVals :: ([Int], [Int], [Int]) -> [Int]
 missingVals (a, b, c) = Set.toList $ Set.difference full some where
     full = Set.fromList [1 .. sudokuSz]
@@ -194,14 +195,3 @@ solve g'@(Board g) rand
             (_,  [])  -> Nothing
             (_,  xs)  -> Just xs
     | otherwise = Nothing
-
-test :: [Int]
-test = [ 7, 2, 6, 4, 9, 3, 8, 1, 5
-       , 3, 1, 5, 7, 2, 8, 9, 4, 6
-       , 4, 6, 9, 6, 5, 1, 2, 3, 7
-       , 8, 5, 2, 1, 4, 7, 6, 9, 3
-       , 6, 7, 3, 9, 8, 5, 1, 2, 4
-       , 9, 4, 1, 3, 6, 2, 7, 5, 8
-       , 1, 9, 4, 8, 3, 6, 5, 7, 2
-       , 5, 6, 7, 2, 1, 4, 3, 8, 9
-       , 2, 3, 8, 5, 7, 9, 4, 6, 1 ]
