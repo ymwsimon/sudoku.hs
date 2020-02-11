@@ -41,7 +41,7 @@ popover {
 	box-shadow: none
 }
 
-box {
+#container {
 	background: #303030
 }
 
@@ -78,22 +78,6 @@ window-frame {
     border-radius: 0 99px 99px 0
 }
 
-button.red.evenCell {
-  background: mix (red, #f5f1b3, 0.4);
-}
-
-button.red.oddCell.red {
-  background: mix (red, #fffdd9, 0.4);
-}
-
-button.green.oddCell {
-  background: mix (green, #fffdd9, 0.4);
-}
-
-button.green.evenCell {
-  background: mix (green, #f5f1b3, 0.4);
-}
-
 #menuBox {
 	background-color: transparent;
 	padding: 40px;
@@ -109,4 +93,57 @@ button.green.evenCell {
 
 button.overlayBtn {
     border-radius: 3px
+}
+
+button.diffMenu:hover,
+button.diffMenu {
+	background: mix (#303030, transparent, 0.4);
+    border: 0;
+    box-shadow: none;
+}
+
+#container.diffMenu:hover,
+#container.diffMenu {
+	background: mix (#303030, transparent, 0.4);
+    border: 0;
+    box-shadow: none;
+}
+
+#container.layoutHelp {
+	background: transparent;
+}
+
+#container.popupMenu {
+	background: transparent;
+}
+
+button.oddCell.selected {
+  color: black;
+  box-shadow: none;
+  border: 2px solid black;
+  background: mix ( mix(#fffdd9, #17131f, 0.03), transparent, 0.03);
+
+}
+
+button.evenCell.selected {
+  color: black;
+  box-shadow: none;
+  border: 2px solid black;
+  background: mix( mix(#f5f1b3, #17131f, 0.1), transparent, 0.1);
+}
+
+button.red.evenCell {
+  background: mix (red, #f5f1b3, 0.4);
+}
+
+button.red.oddCell.red {
+  background: mix (red, #fffdd9, 0.4);
+}
+
+button.green.oddCell {
+  background: mix (#8bff4d, #fffdd9, 0.4);
+}
+
+button.green.evenCell {
+  background: mix (#8bff4d, #f5f1b3, 0.4);
 }

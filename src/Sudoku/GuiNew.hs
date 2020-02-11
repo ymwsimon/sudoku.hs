@@ -22,6 +22,7 @@ import GI.Gtk.Enums
 import GI.Gtk.Objects.Box
 import GI.Gtk.Objects.Builder
 import GI.Gtk.Objects.Button
+import GI.Gtk.Objects.Image
 import GI.Gtk.Objects.Container
 import GI.Gtk.Objects.CssProvider
 import GI.Gtk.Objects.Grid
@@ -34,12 +35,13 @@ import GI.Pango.Structs.FontDescription
 import Paths_sudoku
 import Sudoku.Internal.Bindings
 import Sudoku.Internal.Bridge
+import Data.IORef
 import Sudoku.Internal.Internal
 import Sudoku.Internal.Sudoku
 import qualified Data.Text as T
 import qualified GI.Gtk.Functions as Gtk (main, init, mainQuit)
 
-data Env = Env { difficulty :: Int
+data Env = Env { lastCell   :: IORef Button
                , pulse      :: Int }
 
 data App = App { keypad      :: Popover
@@ -55,14 +57,22 @@ cssPath = "ui/gui.css"
 uiPath :: T.Text
 uiPath = "ui/app.ui"
 
-dfltEnv :: Env
-dfltEnv = Env 50 350000
+fontPath :: T.Text
+fontPath = "ui/sudokuicons.ttf"
+
+logoPath :: T.Text
+logoPath = "ui/sudoku.png"
+
+dfltEnv :: IO Env
+dfltEnv = do
+    lc <- newIORef undefined :: IO (IORef Button)
+    return $ Env lc 350000
 
 applyCss :: Window -> IO ()
 applyCss win = do
     screen <- windowGetScreen win
     css <- cssProviderNew
-    cssProviderLoadFromPath css . T.pack =<< getDataFileName "ui/gui.css"
+    cssProviderLoadFromPath css . T.pack =<< getDataFileName (T.unpack cssPath)
     styleContextAddProviderForScreen screen css 600
 
 unsafeBuildObj :: (GObject o)
@@ -77,7 +87,7 @@ unsafeBuildObj t builder wId = builderGetObject builder wId
 
 buildFont :: IO Font
 buildFont = do
-    pass <- currentAppFontAddFile "/home/fireflower/Dev/hsudoku/ui/sudokuicons.ttf"
+    pass <- currentAppFontAddFile =<< getDataFileName (T.unpack fontPath)
     when (not pass) $ error "err adding font file"
     fontMap <- carioFontMapGetDefault
     fdesc <- fontDescriptionFromString "Sudoku"
@@ -88,8 +98,8 @@ addBtnFont fnt btn = #createPangoContext btn >>= \x -> do
     #loadFont (fst fnt) x $ snd fnt
     return ()
 
-buildBoard :: Builder -> IO Grid
-buildBoard b = do
+buildBoard :: IORef Button -> Builder -> IO Grid
+buildBoard lcRef b = do
     kp <- unsafeBuildObj Popover b "keypad"
     board' <- unsafeBuildObj Grid b "board"
     forM_ cSpace \(i, j) -> do
@@ -97,7 +107,11 @@ buildBoard b = do
         cell <- new Button [ #expand := True
                            , #relief := ReliefStyleNone
                            , #name   := "cell" ]
-        on cell #clicked $ cellBtn kp cell
+        on cell #clicked $ do
+            writeIORef lcRef cell
+            style <- #getStyleContext cell
+            #addClass style "selected"
+            cellBtn kp cell
         style <- #getStyleContext cell
         #addClass style cellT
         #attach board' cell (fromIntegral i) (fromIntegral j) 1 1
@@ -112,10 +126,16 @@ buildBoard b = do
 buildOverlayLayout :: Grid -> Builder -> IO ()
 buildOverlayLayout g b = do
     overlay <- unsafeBuildObj Overlay b "init_overlay"
-    diffBox <- unsafeBuildObj Box b "diff_layout"
+    diffBox <- unsafeBuildObj Box b "popup_menu"
     #addOverlay overlay diffBox
     difficultyBtns b g
     #show overlay
+
+buildLogo :: Builder -> IO ()
+buildLogo b = do
+    logo <- unsafeBuildObj Image b "logo"
+    logoPath' <- getDataFileName $ T.unpack logoPath
+    set logo [#file := T.pack logoPath']
 
 buildCtrlLayout :: Int -> Grid -> Builder -> IO ()
 buildCtrlLayout pulse' g b = do
@@ -127,9 +147,10 @@ buildCtrlLayout pulse' g b = do
     on check_ #clicked $ checkBtn pulse' g
     return ()
 
-buildKeypad :: Font -> Int -> Grid -> Builder -> IO Popover
-buildKeypad (map, desc) pulse' g b = do
+buildKeypad :: IORef Button -> Int -> Grid -> Builder -> IO Popover
+buildKeypad lcRef pulse' g b = do
     kp <- unsafeBuildObj Popover b "keypad"
+    win <- unsafeBuildObj Window b "main"
     let prefix = "kp_"
     forM_ [1..sudokuSz] \x -> do
         btn <- unsafeBuildObj Button b . T.pack $ prefix <> show x
@@ -140,6 +161,14 @@ buildKeypad (map, desc) pulse' g b = do
     on checkBtn' #clicked $ kpCheckBtn pulse' kp g
     on clearBtn #clicked $ kpClearBtn kp
     on cheatBtn #clicked $ kpCheatBtn pulse' kp g
+    on kp #closed $ forkIO do
+            lc <- readIORef lcRef
+            style <- #getStyleContext lc
+            #addClass style "selected"
+            threadDelay pulse'
+            #removeClass style "selected"
+            #setFocus win (Nothing :: Maybe Button)
+        >> return ()
     return kp
 
 buildWindow :: Builder -> IO Window
@@ -152,11 +181,12 @@ buildApp :: Env -> IO App
 buildApp e = do
     builder <- builderNewFromFile . T.pack
         =<< getDataFileName (T.unpack uiPath)
-    board' <- buildBoard builder
+    board' <- buildBoard (lastCell e) builder
     buildOverlayLayout board' builder
+    buildLogo builder
     buildCtrlLayout (pulse e) board' builder
-    kpFont <- buildFont
-    kp <- buildKeypad kpFont (pulse e) board' builder
+    buildFont
+    kp <- buildKeypad (lastCell e) (pulse e) board' builder
     win <- buildWindow builder
     applyCss win
     return $ App kp board' win
@@ -221,7 +251,7 @@ checkBtn pulse g = do
 
 difficultyBtns :: Builder -> Grid -> IO ()
 difficultyBtns b g = do
-    menuBox <- unsafeBuildObj Box b "diff_layout"
+    menuBox <- unsafeBuildObj Box b "popup_menu"
     easyBtn <- unsafeBuildObj Button b "easy_btn"
     normalBtn <- unsafeBuildObj Button b "normal_btn"
     hardBtn <- unsafeBuildObj Button b "hard_btn"
@@ -238,7 +268,7 @@ difficultyBtns b g = do
 
 newGameBtn :: Builder -> IO ()
 newGameBtn b = do
-    menuBox <- unsafeBuildObj Box b "diff_layout"
+    menuBox <- unsafeBuildObj Box b "popup_menu"
     #show menuBox
 
 --------------------------------------------------------------------------------
@@ -265,7 +295,11 @@ flashColor pulse' g ps c = traverseTable g ps \x -> do
 main :: IO ()
 main = do
     Gtk.init Nothing
-    app <- buildApp dfltEnv
-    #showAll $ window app
+    env <- dfltEnv
+    app <- buildApp env
+    let win = window app
+    #setFocus win (Nothing :: Maybe Button)
+    #showAll win
+    #setFocus win (Nothing :: Maybe Button)
     Gtk.main
     `catch` (\(e::GError) -> gerrorMessage e >>= putStrLn . T.unpack)
